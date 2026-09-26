@@ -5,21 +5,21 @@ class MyNeuralNetworkClassifier:
 
     def __init__(
             self, layers_size: list[int],
-            activation: str = "relu",
-            max_iter_: int = 1000,
+            max_iter: int = 1000,
             lr:float = 0.01
         ):
         self.n_classes = 0
         self.class_names = []
         prev_size = [0] + layers_size[:-1]
         self.layers = [Layer(s, prev) for s, prev in zip(layers_size, prev_size)]
-        self.max_iter = max_iter_
+        self.max_iter = max_iter
 
     
     def forward(self, X):
         output = X
         for layer in self.layers:
             output = layer.calc_output(output)
+            print(output)
         return output
 
     def calc_loss(self, X, y):
@@ -36,8 +36,8 @@ class MyNeuralNetworkClassifier:
         self.class_names = np.unique(y)
         self.n_classes = len(self.class_names)
         s = self.layers[0].size
-        self.layers[0] = Layer(s, X.shape[0])
-        self.layers.append(Layer(self.n_classes, self.layers[-1].size, activation_="softmax"))
+        self.layers[0] = Layer(s, X.shape[-1])
+        self.layers.append(Layer(self.n_classes, self.layers[-1].size, activation="softmax"))
         for i in range(self.max_iter):
             pass
             self.gradient(X, y)
