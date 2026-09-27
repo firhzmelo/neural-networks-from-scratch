@@ -1,14 +1,10 @@
 from classes.MyNeuralNetwork import MyNeuralNetworkClassifier
 import numpy as np
-
-X = np.array([[1, 2, 3, 4, 5], [1, 1, 1, 3, 4]])
-print(X.shape)
-
-nn = MyNeuralNetworkClassifier([3, 4])
-
-nn.fit(X, np.array([1, 0]))
-for layer in nn.layers:
-    print(layer.size, layer.prev_size)
+X = np.random.rand(4, 6) 
+y = np.array([1, 1, 2, 0])
 
 
-nn.forward(X)
+nn = MyNeuralNetworkClassifier([8, 10], classes = 5, max_iter = 10)
+
+nn.fit(X, y)
+

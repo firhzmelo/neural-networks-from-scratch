@@ -3,6 +3,7 @@ import numpy as np
 class Layer:
     
     def softmax(x: np.ndarray) -> np.ndarray:
+        print(x)
         return np.exp(x) / np.sum(np.exp(x))
     
     def relu(x: np.ndarray) -> np.ndarray:
@@ -24,8 +25,9 @@ class Layer:
         self.weight = np.random.rand(self.size, self.prev_size)
         self.activation = activation
         self.lr = lr
-        self.output = None
-        self.prev_layer = None
+        self.output: np.ndarray = None
+        self.prev_layer_out:Layer = None
+        self.nxt_layer_weight = None
         self.gradient = None
 
     def act_function(self, x):
@@ -40,19 +42,23 @@ class Layer:
         return self.output
 
     def softmax_gradient(self, y_hat, y):
-        return (-1 / y_hat).T @ (y_hat - y) # puede que sea al reves
+        return ((-1 / y_hat) * (y_hat[y, :] - 1)).reshape((y_hat.shape))
 
-    def relu_gradient(self, in_gradient):
-        return (self.weight * self.output) @ in_gradient @ self.prev_layer.output
+    def relu_gradient(self, in_gradient): 
+        return (in_gradient.T @ self.nxt_layer_weight).T * self.output 
 
-    def update_param(self, prev_layer):
-        self.weight = self.weight - self.lr * ( prev_layer.output)
-        self.bias = self.bias - self.lr * self.gradient
+    def update_param_softmax(self):
+        self.weight = self.weight - self.lr * (self.gradient @ self.prev_layer_out.T)
+        self.bias = self.bias - self.lr * np.sum(self.gradient, axis = 1, keepdims = True)
+
+    def update_param_relu(self):
+        self.weight = self.weight - self.lr * (self.gradient @ self.prev_layer_out.T)
+        self.bias = self.bias - self.lr * (self.gradient)
 
     def calc_gradient(self, in_gradient, y_hat = None, y = None):
         if(self.activation == "softmax"):
             self.gradient = self.softmax_gradient(y_hat, y)
-            self.update_param()
+            self.update_param_softmax()
         else:
             self.gradient = self.relu_gradient(in_gradient)
-        self.update_param()
+            self.update_param_relu()
