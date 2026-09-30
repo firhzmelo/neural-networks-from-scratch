@@ -19,8 +19,8 @@ class Layer:
 
     def __init__(
             self,
-            layer_size_: int, prev_size_: int,
-            activation:str = "relu", lr:float = 0.001
+            layer_size_: int, prev_size_: int, lr:float,
+            activation:str = "relu"
         ):
         self.size = layer_size_ 
         self.prev_size = prev_size_

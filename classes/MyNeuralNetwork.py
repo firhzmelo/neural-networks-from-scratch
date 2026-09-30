@@ -8,15 +8,15 @@ class MyNeuralNetworkClassifier:
             input_size:int,
             classes: int,
             class_names = [],
-            max_iter: int = 20,
+            max_iter: int = 50,
             lr:float = 0.01,
             batch_size:int = 128 
         ):
         self.n_classes = classes
         self.class_names = class_names
         prev_size = [input_size] + layers_size[:-1]
-        self.layers = [Layer(s, prev) for s, prev in zip(layers_size, prev_size)]
-        self.layers.append(Layer(self.n_classes, self.layers[-1].size, activation="softmax"))
+        self.layers = [Layer(s, prev, lr) for s, prev in zip(layers_size, prev_size)]
+        self.layers.append(Layer(self.n_classes, self.layers[-1].size, lr, activation="softmax"))
         self.max_iter = max_iter
         self.lr = lr
         self.batch_size = batch_size
@@ -24,7 +24,6 @@ class MyNeuralNetworkClassifier:
     
     def forward(self, X):
         output = X
-        prev_layer = None
         for layer in self.layers:
             layer.prev_layer_out = output
             output = layer.calc_output(output)
@@ -64,4 +63,4 @@ class MyNeuralNetworkClassifier:
         X = np.array(X)
         X = X.T
         y_hat = self.forward(X)
-        return y_hat.argmax(axis = 0)
+        return y_hat.argmax(axis = 0).astype(np.int64)
