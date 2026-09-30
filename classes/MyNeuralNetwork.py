@@ -5,17 +5,20 @@ class MyNeuralNetworkClassifier:
 
     def __init__(
             self, layers_size: list[int],
+            input_size:int,
             classes: int,
             class_names = [],
-            max_iter: int = 1000,
+            max_iter: int = 20,
             lr:float = 0.01,
             batch_size:int = 128 
         ):
         self.n_classes = classes
         self.class_names = class_names
-        prev_size = [0] + layers_size[:-1]
+        prev_size = [input_size] + layers_size[:-1]
         self.layers = [Layer(s, prev) for s, prev in zip(layers_size, prev_size)]
+        self.layers.append(Layer(self.n_classes, self.layers[-1].size, activation="softmax"))
         self.max_iter = max_iter
+        self.lr = lr
         self.batch_size = batch_size
 
     
@@ -33,7 +36,7 @@ class MyNeuralNetworkClassifier:
             if nxt_layer != None:
                 layer.nxt_layer_weight = nxt_layer.weight
             if(nxt_layer == None):
-                layer.calc_gradient(1, y_hat)
+                layer.calc_gradient(1, y_hat, y)
             else:
                 layer.calc_gradient(nxt_layer.gradient)
             nxt_layer = layer
@@ -43,21 +46,22 @@ class MyNeuralNetworkClassifier:
         total_loss = -np.sum(np.log(y_hat[y, np.arange(batch_size)])) / batch_size
         return total_loss
 
-    def fit(self, X, y):
+    def fit(self, X, y, return_loss = False):
+        X = np.array(X)
+        y = np.array(y)
         X = X.T
-        #print("--", X.shape)
-        s = self.layers[0].size
-        self.layers[0] = Layer(s, X.shape[0])
-        self.layers.append(Layer(self.n_classes, self.layers[-1].size, activation="softmax"))
 
-        #for i, layer in enumerate(self.layers):
-        #    print(i, ":", layer.size, layer.prev_size)
-
+        total_loss = None
         for i in range(self.max_iter):
             y_hat = self.forward(X)
             total_loss = self.calc_loss(y_hat, y) 
-            #print(total_loss)
             self.backward(y, y_hat)
+        if(return_loss):
+            return total_loss
 
 
-    
+    def predict(self, X):
+        X = np.array(X)
+        X = X.T
+        y_hat = self.forward(X)
+        return y_hat.argmax(axis = 0)
