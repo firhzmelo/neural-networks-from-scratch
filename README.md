@@ -51,7 +51,7 @@ pip install numpy pandas scikit-learn matplotlib
 python3 test.py
 ```
 
-`main.ipynb` contains the same experiment step by step: load the data, split it, build the batches, train, plot the loss curve and predict a single digit.
+`main.ipynb` contains the same experiment step by step: load the data, split it, build the batches, train, plot the loss curve and compare it with `MLPClassifier`.
 
 Usage, mirroring `test.py`:
 
@@ -82,7 +82,7 @@ for batch_x, batch_y in create_batches(X_train, y_train):
 print(nn.predict(X_test.iloc[[0]]))
 ```
 
-`MyNeuralNetworkClassifier(layers_size, input_size, classes, class_names=[], max_iter=20, lr=0.01, batch_size=128)` builds a network with one ReLU hidden layer per size in `layers_size` and appends a softmax output layer of `classes` units. `fit` and `predict` expect `X` in the usual `(samples, features)` orientation and transpose it to `(features, samples)` internally, since that is how the forward pass multiplies `W @ X`. `fit` performs `max_iter` full-batch updates on whatever matrix it receives, so the caller owns the batching and the number of epochs; pass `return_loss=True` to get the final cross-entropy loss back instead of `None`.
+`MyNeuralNetworkClassifier(layers_size, input_size, classes, class_names=[], max_iter=50, lr=0.01, batch_size=128)` builds a network with one ReLU hidden layer per size in `layers_size` and appends a softmax output layer of `classes` units. `fit` and `predict` expect `X` in the usual `(samples, features)` orientation and transpose it to `(features, samples)` internally, since that is how the forward pass multiplies `W @ X`. `fit` performs `max_iter` full-batch updates on whatever matrix it receives, so the caller owns the batching and the number of epochs; pass `return_loss=True` to get the final cross-entropy loss back instead of `None`.
 
 ## Project Progress
 
@@ -105,14 +105,13 @@ print(nn.predict(X_test.iloc[[0]]))
 - [ ] **No accuracy metric yet** — nothing computes accuracy over `X_test`; the notebook only checks the prediction for one image. Until that exists, the quality of the model is unverified.
 - [ ] Loss curve is plotted in the notebook but never saved, and `images/` is still empty.
 
-### Planned
+### Improvements 
 
 - [ ] Evaluation: accuracy (and per-class breakdown) on the held-out test split
 - [ ] Mini-batch training as a feature of the class instead of a caller-side helper
 - [ ] Regularization (L2 / dropout)
 - [ ] Alternative weight initialization options
 - [ ] Model persistence (save/load trained weights)
-- [ ] Comparison against scikit-learn's `MLPClassifier`
 
 ## Project Structure
 
