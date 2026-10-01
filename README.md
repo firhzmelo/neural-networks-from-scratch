@@ -255,10 +255,19 @@ my-neural-network/
 | `MyNeuralNetworkClassifier` | `fit(X, y, return_loss=False)` | Transposes `X` and runs `max_iter` forward/backward steps, optionally returning the final loss |
 | `MyNeuralNetworkClassifier` | `predict(X)` | Transposes `X` and returns `argmax(axis=0)` of the network output |
 
+## Lessons Learned
+
+At first I was stucked, since there were several approaches to implement a Neural Network, at first I made 2 classes `HiddenLayer` and `OutputLayer`, which I decided to simplify to a single class and set the activation function inside the class. Later I found other approach (PyTorch) which was creating Linear layers and Activation layers separately which results in a simpler calculation of gradients and cleaner code, overall.
+
+Without a doubt the hardest part of this project was the gradient calculation, since at first I did a non-simplified calculation of the softmax gradient, which led me to NaN values in the prediction probabilities of the classes. Also the shape matching for matrix multiplication was tricky, since several matrices should be transposed when calculating the gradient.
+
+Finally I noticed that initializing random weights and multiply them by 0.001 was no good for the model since this resulted in a vanishing gradient which led to barely any optimization and variability in the weights. So I changed to Kaiming He initialization which research suggest it works great for ReLU as the activation function.
+
 ## Resources
 
 - [Stanford CS229: Machine Learning (Autumn 2018) — Lecture 10](https://www.youtube.com/watch?v=MfIjxPh6Pys&list=PLoROMvodv4rMiGQp3WXShtMGgzqpfVfbU&index=11)
 - [Building a neural network FROM SCRATCH (no Tensorflow/Pytorch, just numpy & math) — Samson Zhang](https://www.youtube.com/watch?v=w8yWXqWQYmU)
+- [Activation Function Explanation Video](https://youtu.be/hFa6sYJnTfs?si=UJHsJudcDerojEXf) - Spanish
 - [Explanation of derivative of Softmax](https://davidbieber.com/snippets/2020-12-12-derivative-of-softmax-and-the-softmax-cross-entropy-loss/)
     - More detailed explanation: [link](https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/)
 - [scikit-learn — `MLPClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html)
