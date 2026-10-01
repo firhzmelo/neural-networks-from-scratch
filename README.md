@@ -89,6 +89,24 @@ print(nn.predict(X_test.iloc[[0]]))
 
 `MyNeuralNetworkClassifier(layers_size, input_size, classes, class_names=[], max_iter=50, lr=0.01, batch_size=128)` builds a network with one ReLU hidden layer per size in `layers_size` and appends a softmax output layer of `classes` units. `fit` and `predict` expect `X` in the usual `(samples, features)` orientation and transpose it to `(features, samples)` internally, since that is how the forward pass multiplies `W @ X`. `fit` performs `max_iter` full-batch updates on whatever matrix it receives, so the caller owns the batching and the number of passes over each batch; pass `return_loss=True` to get the cross-entropy loss of the last update back instead of `None`.
 
+## Implementation Notes
+
+The design leans toward a **modular approach**: rather than separate `HiddenLayer` and `OutputLayer` classes, a single `Layer` class represents any layer. What changes between layers — the activation function — is just a constructor argument, which keeps the code smaller and makes each layer's behavior identical up to its own parameters.
+
+Notable details:
+
+- **Activations as a registry** — `Layer.activation_functions` maps names to functions, so a layer is configured by passing a string (`"relu"` or `"softmax"`) rather than a callable. Hidden layers default to ReLU; only the output layer uses softmax.
+- **He initialization** — weights are drawn from `np.random.randn(size, prev_size) / np.sqrt(prev_size / 2)`, i.e. standard deviation `sqrt(2 / prev_size)`, which keeps activations from collapsing or exploding through ReLU layers. Biases start at zero.
+- **Numerically stable softmax** — the maximum is subtracted before exponentiating (`exp(x - max) / sum(exp(x - max))`), so large logits cannot overflow. Outputs are proper probabilities that sum to 1 across the class axis.
+- **Fused softmax + cross-entropy gradient** — the output layer uses `(y_hat - onehot(y)) / batch_size` directly instead of multiplying by the softmax Jacobian, which is mathematically identical for this loss pair and avoids building the `(classes, classes)` matrix per sample.
+- **Mean gradients** — every gradient is divided by the batch size, and the loss is a mean over samples, so `lr` is independent of batch size. scikit-learn's `_compute_loss_grad` divides by `n_samples` the same way.
+- **Gradients are computed and applied in one call** — `Layer.calc_gradient` stores `self.gradient` and immediately updates `weight` and `bias`, so `backward` is really "one SGD step over all layers".
+- **Biases are column vectors** — `bias` has shape `(size, 1)` while `weight` has shape `(size, prev_size)`, matching the `(features, samples)` orientation used after transposing the input. Note that scikit-learn stores the transpose of this layout, `(features, units)`.
+- **Backpropagation through weights** — the hidden-layer gradient is `(in_gradient.T @ self.nxt_layer_weight).T * (self.z > 0)`: the incoming gradient is pulled back through the next layer's weight matrix, then masked where the pre-activation was not positive.
+- **`fit` is the step budget** — it runs `max_iter` forward/backward cycles over the matrix it is given. In the MNIST experiment that is 50 updates on each of 263 batches, so 13,150 parameter updates in total.
+- **Type hints on the activations** — `relu` and `softmax` are annotated `np.ndarray -> np.ndarray`.
+- **Naming convention** — `X` always refers to the input of a layer and `out` to the output of its activation function, so `calc_output(X)` and `backward(X, out)` stay symmetrical.
+
 ## Model Comparison
 
 Both models were trained on the same split, with the same architecture, the same batch size, and the same number of parameter updates. scikit-learn's `MLPClassifier` is configured with `max_iter=50` to match the `max_iter=50` used by `fit`.
@@ -217,24 +235,6 @@ my-neural-network/
 ├── test.py                 # Minimal training script
 └── README.md
 ```
-
-## Implementation Notes
-
-The design leans toward a **modular approach**: rather than separate `HiddenLayer` and `OutputLayer` classes, a single `Layer` class represents any layer. What changes between layers — the activation function — is just a constructor argument, which keeps the code smaller and makes each layer's behavior identical up to its own parameters.
-
-Notable details:
-
-- **Activations as a registry** — `Layer.activation_functions` maps names to functions, so a layer is configured by passing a string (`"relu"` or `"softmax"`) rather than a callable. Hidden layers default to ReLU; only the output layer uses softmax.
-- **He initialization** — weights are drawn from `np.random.randn(size, prev_size) / np.sqrt(prev_size / 2)`, i.e. standard deviation `sqrt(2 / prev_size)`, which keeps activations from collapsing or exploding through ReLU layers. Biases start at zero.
-- **Numerically stable softmax** — the maximum is subtracted before exponentiating (`exp(x - max) / sum(exp(x - max))`), so large logits cannot overflow. Outputs are proper probabilities that sum to 1 across the class axis.
-- **Fused softmax + cross-entropy gradient** — the output layer uses `(y_hat - onehot(y)) / batch_size` directly instead of multiplying by the softmax Jacobian, which is mathematically identical for this loss pair and avoids building the `(classes, classes)` matrix per sample.
-- **Mean gradients** — every gradient is divided by the batch size, and the loss is a mean over samples, so `lr` is independent of batch size. scikit-learn's `_compute_loss_grad` divides by `n_samples` the same way.
-- **Gradients are computed and applied in one call** — `Layer.calc_gradient` stores `self.gradient` and immediately updates `weight` and `bias`, so `backward` is really "one SGD step over all layers".
-- **Biases are column vectors** — `bias` has shape `(size, 1)` while `weight` has shape `(size, prev_size)`, matching the `(features, samples)` orientation used after transposing the input. Note that scikit-learn stores the transpose of this layout, `(features, units)`.
-- **Backpropagation through weights** — the hidden-layer gradient is `(in_gradient.T @ self.nxt_layer_weight).T * (self.z > 0)`: the incoming gradient is pulled back through the next layer's weight matrix, then masked where the pre-activation was not positive.
-- **`fit` is the step budget** — it runs `max_iter` forward/backward cycles over the matrix it is given. In the MNIST experiment that is 50 updates on each of 263 batches, so 13,150 parameter updates in total.
-- **Type hints on the activations** — `relu` and `softmax` are annotated `np.ndarray -> np.ndarray`.
-- **Naming convention** — `X` always refers to the input of a layer and `out` to the output of its activation function, so `calc_output(X)` and `backward(X, out)` stay symmetrical.
 
 ## API
 
